@@ -1,0 +1,64 @@
+How to Add a Camera Locally:
+
+This document assumes that you have already followed the installation guide for the local environment and have successfully set up the project. Once these prerequisites are met, follow the steps below to add a camera locally:
+
+    Ensure that the following services are up and running:
+    a. java-services/GlobalDispatchService.java
+    b. java-services/CameraEndpointService.java (VMS CameraEndpoint)
+
+    To achieve this, execute the following commands:
+
+    bash
+
+1. docker compose -f docker-compose.yml -f docker-compose.cameraendpoint.yml up -d consul eureka cockroachdb postgresql prometheus
+2. java -jar java-services/GlobalDispatchService.java
+3. java -jar java-services/CameraEndpointService.java
+
+Ensure that you refer to the respective README files for each service to ensure proper setup.
+
+After the services are up, create an unregistered camera using the following curl command:
+
+bash
+
+curl --location '<your_ip>:36080/api/v2/camera-endpoint/cameras' \
+--header 'Accept: application/json' \
+--header 'Content-Type: application/json' \
+--data '{
+    "esn": "<camera_esn_String>",
+    "macAddress": "<cameraMacAddress_String>",
+    "credentials": [
+        {
+            "username": "<username_String>",
+            "password": "<password_String>"
+        }
+    ]
+}'
+
+This curl command will create a database entry in the camera_endpoint>add_device_hardware_ids table within PostgreSQL. This entry is crucial for the CameraEndpoint service to recognize the camera to be added to the network.
+
+Initiate the registration process for the camera by using the following curl command:
+
+bash
+
+curl --location 'https://global-dispatch.c000.cameramanager.com/internal/dispatch/hardwareIds/{{cameraMacAddress}}/fallback' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: {{credentials}}' \
+--data '{
+    "host": "<ip_string>",
+    "securePort": "8181",
+    "owner": "<owner_name_string>",
+    "notes": "<string>"
+}'
+
+This curl command triggers the registration process, wherein the camera attempts to communicate with the CameraEndpoint service to finalize the addition.
+
+To complete the test successfully, ensure that Cloudbridge is up and running. Refer to the following link for Cloudbridge setup: https://github.com/EENCloud/cloudbridge
+
+Note: If you are using Windows, execute the following command before running Cloudbridge:
+
+bash
+
+    git config --global core.autocrlf false
+
+    This step is essential for ensuring proper compatibility.
+
